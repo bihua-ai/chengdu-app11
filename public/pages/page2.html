@@ -2,8 +2,8 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>能量趋势</title>
-    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <title>能量趋势与频次趋势</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script> 
     <style>
         html, body {
             margin: 0;
@@ -12,16 +12,18 @@
             height: 100%;
             overflow: hidden;
         }
-        #main {
+        #main, #freq {
             width: 100%;
-            height: 100%;
+            height: 50%; /* Adjusted to fit two charts */
         }
     </style>
 </head>
 <body>
     <div id="main"></div>
+    <div id="freq"></div>
     <script>
-        var myChart = echarts.init(document.getElementById('main'));
+        var myChartEnergy = echarts.init(document.getElementById('main'));
+        var myChartFreq = echarts.init(document.getElementById('freq'));
 
         // Hard-coded time data
         var timeData = [];
@@ -56,7 +58,7 @@
             aeData.push(aeValue);
         });
 
-        var option = {
+        var optionEnergy = {
             title: {
                 text: '能量趋势',
                 left: 'center'
@@ -142,11 +144,37 @@
             }]
         };
 
-        myChart.setOption(option);
+        myChartEnergy.setOption(optionEnergy);
+
+        var uhvDataFreq = uhvData.map(val => val * 1.1); // 10% increase
+        var tevDataFreq = tevData.map(val => val * 1.1); // 10% increase
+        var aeDataFreq = aeData.map(val => val * 1.1); // 10% increase
+
+        var optionFreq = JSON.parse(JSON.stringify(optionEnergy)); // Clone the energy chart options
+        optionFreq.title.text = '频次趋势';
+        optionFreq.series = [{
+            name: 'UHV',
+            type: 'line',
+            symbolSize: 8,
+            data: uhvDataFreq
+        }, {
+            name: 'TEV',
+            type: 'line',
+            symbolSize: 8,
+            data: tevDataFreq
+        }, {
+            name: 'AE',
+            type: 'line',
+            symbolSize: 8,
+            data: aeDataFreq
+        }];
+
+        myChartFreq.setOption(optionFreq);
 
         // Handle window resize
         window.addEventListener('resize', function() {
-            myChart.resize();
+            myChartEnergy.resize();
+            myChartFreq.resize();
         });
     </script>
 </body>
