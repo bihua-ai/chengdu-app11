@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>能量趋势与频次趋势</title>
-    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>  
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>     
     <style>
         html, body {
             margin: 0;
@@ -27,31 +27,53 @@
 
         // Hard-coded time data
         var timeData = [];
-
-        // Generate time data
-        for (var i = 0; i < 48; i++) {
-            var date = '2009/6/12';
-            var hour = i < 24 ? i : i - 24;
-            var timeStr = date + ' ' + (hour < 10 ? '0' + hour : hour) + ':00';
-            timeData.push(timeStr);
-        }
-
-        // Hard-coded random data with peaks at different times for each line
         var uhvData = [];
         var tevData = [];
         var aeData = [];
 
+        // Generate time data for one year with 30-minute intervals
+        var startDate = new Date('2023-01-01T00:00:00');
+        var endDate = new Date('2023-12-31T23:30:00');
+
+        while (startDate <= endDate) {
+            var dateStr = startDate.toISOString().split('T')[0]; // Extract date as YYYY-MM-DD
+            var timeStr = startDate.toISOString().split('T')[1].slice(0, 5); // Extract HH:mm
+            timeData.push(dateStr + ' ' + timeStr);
+            startDate.setMinutes(startDate.getMinutes() + 30);
+        }
+
+        // Function to calculate a "probability factor" that increases by 10% over the year
+        function getProbabilityFactor(date) {
+            var totalDaysInYear = 365; // 2023 is not a leap year
+            var startOfYear = new Date('2023-01-01');
+            var daysSinceStart = Math.floor((date - startOfYear) / (1000 * 60 * 60 * 24));
+            
+            // We want a gradual increase in probability over the year. 
+            // A 10% increase means the probability of values > 0.8 should increase over the year.
+            return Math.min(0.8 + 0.1 * (daysSinceStart / totalDaysInYear), 1.0); 
+        }
+
+        // Generate random data with specific peaks for UHV, TEV, and AE
         timeData.forEach(function (time, index) {
             var hour = parseInt(time.split(' ')[1].split(':')[0]);
+            var minute = parseInt(time.split(' ')[1].split(':')[1]);
 
-            // UHV peaks at 9 AM and 2 PM
-            var uhvValue = (hour === 9 || hour === 14) ? 1 : Math.random() * 0.7 + 0.3;
+            // Get the probability factor for the current date
+            var currentDate = new Date(time.split(' ')[0]);
+            var probabilityFactor = getProbabilityFactor(currentDate);
 
-            // TEV peaks at 10 AM and 1 PM
-            var tevValue = (hour === 10 || hour === 13) ? 1 : Math.random() * 0.7 + 0.3;
+            // UHV peak at 10:00 AM, 10:15 AM (0.95), minimum 0.3
+            var uhvValue = (hour === 10 && minute === 0) ? 0.95 :
+                        (hour === 10 && minute === 15) ? 0.95 :
+                        (Math.random() < probabilityFactor ? Math.random() * 0.65 + 0.3 : Math.random() * 0.4 + 0.3);
 
-            // AE peaks at 11 AM and 3 PM
-            var aeValue = (hour === 11 || hour === 15) ? 1 : Math.random() * 0.7 + 0.3;
+            // TEV peak at 10:15 AM (0.9), minimum 0.33
+            var tevValue = (hour === 10 && minute === 15) ? 0.9 :
+                        (Math.random() < probabilityFactor ? Math.random() * 0.57 + 0.33 : Math.random() * 0.33 + 0.33);
+
+            // AE peak at 9:45 AM (0.99), minimum 0.35
+            var aeValue = (hour === 9 && minute === 45) ? 0.99 :
+                        (Math.random() < probabilityFactor ? Math.random() * 0.64 + 0.35 : Math.random() * 0.35 + 0.35);
 
             uhvData.push(uhvValue);
             tevData.push(tevValue);
@@ -150,42 +172,156 @@
         var uhvDataFreq = [];
         var tevDataFreq = [];
         var aeDataFreq = [];
+        var dateLabels = [];
 
-        timeData.forEach(function (time, index) {
-            var hour = parseInt(time.split(' ')[1].split(':')[0]);
+        // Function to calculate the frequency of data points exceeding 0.7 for each 24-hour period
+        function calculateFrequencyForDay(data) {
+            var count = 0;
+            data.forEach(function(value) {
+                if (value > 0.7) {
+                    count++;
+                }
+            });
+            return count;
+        }
 
-            // UHV frequency peaks at 8 AM and 4 PM
-            var uhvFreqValue = (hour === 8 || hour === 16) ? 1.1 : Math.random() * 0.6 + 0.4;
+        // Loop through the timeData to calculate frequency for every 24-hour period (48 half-hour intervals)
+        var uhvDayData = [];
+        var tevDayData = [];
+        var aeDayData = [];
+        var currentDate = null;
 
-            // TEV frequency peaks at 9 AM and 5 PM
-            var tevFreqValue = (hour === 9 || hour === 17) ? 1.1 : Math.random() * 0.6 + 0.4;
-
-            // AE frequency peaks at 10 AM and 6 PM
-            var aeFreqValue = (hour === 10 || hour === 18) ? 1.1 : Math.random() * 0.6 + 0.4;
-
-            uhvDataFreq.push(uhvFreqValue);
-            tevDataFreq.push(tevFreqValue);
-            aeDataFreq.push(aeFreqValue);
+        timeData.forEach(function(time, index) {
+            var date = time.split(' ')[0];
+            
+            if (currentDate !== date) {
+                if (currentDate !== null) {
+                    // Calculate frequency for the previous day
+                    uhvDataFreq.push(calculateFrequencyForDay(uhvDayData));
+                    tevDataFreq.push(calculateFrequencyForDay(tevDayData));
+                    aeDataFreq.push(calculateFrequencyForDay(aeDayData));
+                    dateLabels.push(currentDate);
+                    
+                    // Reset arrays for the new day
+                    uhvDayData = [];
+                    tevDayData = [];
+                    aeDayData = [];
+                }
+                currentDate = date;
+            }
+            
+            uhvDayData.push(uhvData[index]);
+            tevDayData.push(tevData[index]);
+            aeDayData.push(aeData[index]);
         });
 
-        var optionFreq = JSON.parse(JSON.stringify(optionEnergy)); // Clone the energy chart options
-        optionFreq.title.text = '频次趋势';
-        optionFreq.series = [{
-            name: 'UHV',
-            type: 'line',
-            symbolSize: 8,
-            data: uhvDataFreq
-        }, {
-            name: 'TEV',
-            type: 'line',
-            symbolSize: 8,
-            data: tevDataFreq
-        }, {
-            name: 'AE',
-            type: 'line',
-            symbolSize: 8,
-            data: aeDataFreq
-        }];
+        // Add the last day's data
+        if (uhvDayData.length > 0) {
+            uhvDataFreq.push(calculateFrequencyForDay(uhvDayData));
+            tevDataFreq.push(calculateFrequencyForDay(tevDayData));
+            aeDataFreq.push(calculateFrequencyForDay(aeDayData));
+            dateLabels.push(currentDate);
+        }
+
+        // Function to find the maximum value in the frequency data arrays
+        function findMaxYAxisScale(dataArrays) {
+            return Math.max(...dataArrays.map(data => Math.max(...data)));
+        }
+
+        // Calculate the maximum y-axis scale needed
+        var maxFreqValue = findMaxYAxisScale([uhvDataFreq, tevDataFreq, aeDataFreq]);
+
+        // Option for the frequency chart
+        var optionFreq = {
+            title: {
+                text: '频次趋势',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    animation: false
+                }
+            },
+            legend: {
+                data: ['UHV', 'TEV', 'AE'],
+                left: 10
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '10%',
+                top: '15%',
+                containLabel: true
+            },
+            toolbox: {
+                feature: {
+                    dataZoom: {
+                        yAxisIndex: 'none'
+                    },
+                    restore: {},
+                    saveAsImage: {}
+                }
+            },
+            dataZoom: [{
+                show: true,
+                realtime: true,
+                start: 0,
+                end: 100,
+                xAxisIndex: [0]
+            }, {
+                type: 'inside',
+                realtime: true,
+                start: 0,
+                end: 100,
+                xAxisIndex: [0]
+            }],
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: dateLabels,
+                axisLabel: {
+                    formatter: function(value) {
+                        return value.substring(5); // Show only MM-DD
+                    }
+                }
+            },
+            yAxis: {
+                type: 'value',
+                max: Math.ceil(maxFreqValue * 1.1), // Add 10% padding
+                axisLabel: {
+                    show: true
+                },
+                splitLine: {
+                    show: true
+                }
+            },
+            series: [{
+                name: 'UHV',
+                type: 'line',
+                data: uhvDataFreq,
+                symbolSize: 8,
+                lineStyle: {
+                    width: 2
+                }
+            }, {
+                name: 'TEV',
+                type: 'line',
+                data: tevDataFreq,
+                symbolSize: 8,
+                lineStyle: {
+                    width: 2
+                }
+            }, {
+                name: 'AE',
+                type: 'line',
+                data: aeDataFreq,
+                symbolSize: 8,
+                lineStyle: {
+                    width: 2
+                }
+            }]
+        };
 
         myChartFreq.setOption(optionFreq);
 
