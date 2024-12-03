@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>能量趋势与频次趋势</title>
-    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>  
     <style>
         html, body {
             margin: 0;
@@ -44,14 +44,14 @@
         timeData.forEach(function (time, index) {
             var hour = parseInt(time.split(' ')[1].split(':')[0]);
 
-            // UHV peaks at 10 AM
-            var uhvValue = (hour === 10) ? 1 : Math.random() * 0.7 + 0.3;
+            // UHV peaks at 9 AM and 2 PM
+            var uhvValue = (hour === 9 || hour === 14) ? 1 : Math.random() * 0.7 + 0.3;
 
-            // TEV peaks at 2 PM
-            var tevValue = (hour === 14) ? 1 : Math.random() * 0.7 + 0.3;
+            // TEV peaks at 10 AM and 1 PM
+            var tevValue = (hour === 10 || hour === 13) ? 1 : Math.random() * 0.7 + 0.3;
 
-            // AE peaks at 8 AM and 4 PM
-            var aeValue = (hour === 8 || hour === 16) ? 1 : Math.random() * 0.7 + 0.3;
+            // AE peaks at 11 AM and 3 PM
+            var aeValue = (hour === 11 || hour === 15) ? 1 : Math.random() * 0.7 + 0.3;
 
             uhvData.push(uhvValue);
             tevData.push(tevValue);
@@ -146,9 +146,27 @@
 
         myChartEnergy.setOption(optionEnergy);
 
-        var uhvDataFreq = uhvData.map(val => val * 1.1); // 10% increase
-        var tevDataFreq = tevData.map(val => val * 1.1); // 10% increase
-        var aeDataFreq = aeData.map(val => val * 1.1); // 10% increase
+        // Separate formula for frequency trend data
+        var uhvDataFreq = [];
+        var tevDataFreq = [];
+        var aeDataFreq = [];
+
+        timeData.forEach(function (time, index) {
+            var hour = parseInt(time.split(' ')[1].split(':')[0]);
+
+            // UHV frequency peaks at 8 AM and 4 PM
+            var uhvFreqValue = (hour === 8 || hour === 16) ? 1.1 : Math.random() * 0.6 + 0.4;
+
+            // TEV frequency peaks at 9 AM and 5 PM
+            var tevFreqValue = (hour === 9 || hour === 17) ? 1.1 : Math.random() * 0.6 + 0.4;
+
+            // AE frequency peaks at 10 AM and 6 PM
+            var aeFreqValue = (hour === 10 || hour === 18) ? 1.1 : Math.random() * 0.6 + 0.4;
+
+            uhvDataFreq.push(uhvFreqValue);
+            tevDataFreq.push(tevFreqValue);
+            aeDataFreq.push(aeFreqValue);
+        });
 
         var optionFreq = JSON.parse(JSON.stringify(optionEnergy)); // Clone the energy chart options
         optionFreq.title.text = '频次趋势';
