@@ -1,108 +1,153 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>Plotly Line Chart</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <title>能量趋势</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+            height: 100%;
             overflow: hidden;
         }
-        #plotly-chart {
-            flex: 1;
+        #main {
             width: 100%;
             height: 100%;
-            min-height: 0;
         }
     </style>
 </head>
 <body>
+    <div id="main"></div>
+    <script>
+        var myChart = echarts.init(document.getElementById('main'));
 
-<div id="plotly-chart"></div>
+        // Hard-coded time data
+        var timeData = [];
 
-<script>
-    // Sample data
-    var dates = Array.from({length: 100}, (_, i) => new Date(2018, 10, 27, 0, 0).getTime() + i * 86400000);
-    var pH1 = Array.from({length: 100}, () => Math.random() * 2);
-    var pH2 = Array.from({length: 100}, () => Math.random() * 2 + 2);
-    var pH3 = Array.from({length: 100}, () => Math.random() * 2 + 4);
-
-    // Create the traces
-    var trace1 = {
-        x: dates,
-        y: pH1,
-        mode: 'lines',
-        name: 'pH1',
-        line: {color: 'blue'}
-    };
-
-    var trace2 = {
-        x: dates,
-        y: pH2,
-        mode: 'lines',
-        name: 'pH2',
-        line: {color: 'green'}
-    };
-
-    var trace3 = {
-        x: dates,
-        y: pH3,
-        mode: 'lines',
-        name: 'pH3',
-        line: {color: 'lightgreen'}
-    };
-
-    // Create the layout with responsive configuration
-    var layout = {
-        title: 'pH Levels Over Time',
-        xaxis: {
-            title: 'Date',
-            type: 'date',
-            range: [new Date(2018, 10, 27, 0, 0), new Date(2018, 11, 5, 0, 0)]
-        },
-        yaxis: {
-            title: 'pH Level',
-            range: [0, 6]
-        },
-        margin: {
-            l: 50,
-            r: 20,
-            t: 40,
-            b: 50
-        },
-        autosize: true,
-        showlegend: true,
-        legend: {
-            orientation: 'h',
-            y: -0.2
+        // Generate time data
+        for (var i = 0; i < 48; i++) {
+            var date = '2009/6/12';
+            var hour = i < 24 ? i : i - 24;
+            var timeStr = date + ' ' + (hour < 10 ? '0' + hour : hour) + ':00';
+            timeData.push(timeStr);
         }
-    };
 
-    // Configuration for better responsiveness
-    var config = {
-        responsive: true,
-        displayModeBar: false
-    };
+        // Hard-coded random data with peaks at different times for each line
+        var uhvData = [];
+        var tevData = [];
+        var aeData = [];
 
-    // Create the figure and handle window resize
-    function initPlot() {
-        Plotly.newPlot('plotly-chart', [trace1, trace2, trace3], layout, config);
-        
-        // Handle container resize
-        new ResizeObserver(() => {
-            Plotly.Plots.resize('plotly-chart');
-        }).observe(document.getElementById('plotly-chart'));
-    }
+        timeData.forEach(function (time, index) {
+            var hour = parseInt(time.split(' ')[1].split(':')[0]);
 
-    // Initialize the plot when the page loads
-    initPlot();
-</script>
+            // UHV peaks at 10 AM
+            var uhvValue = (hour === 10) ? 1 : Math.random() * 0.7 + 0.3;
 
+            // TEV peaks at 2 PM
+            var tevValue = (hour === 14) ? 1 : Math.random() * 0.7 + 0.3;
+
+            // AE peaks at 8 AM and 4 PM
+            var aeValue = (hour === 8 || hour === 16) ? 1 : Math.random() * 0.7 + 0.3;
+
+            uhvData.push(uhvValue);
+            tevData.push(tevValue);
+            aeData.push(aeValue);
+        });
+
+        var option = {
+            title: {
+                text: '能量趋势',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    animation: false
+                }
+            },
+            legend: {
+                data: ['UHV', 'TEV', 'AE'],
+                left: 10
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '10%',
+                top: '15%',
+                containLabel: true
+            },
+            toolbox: {
+                feature: {
+                    dataZoom: {
+                        yAxisIndex: 'none'
+                    },
+                    restore: {},
+                    saveAsImage: {}
+                }
+            },
+            axisPointer: {
+                link: [{
+                    xAxisIndex: 'all'
+                }]
+            },
+            dataZoom: [{
+                show: true,
+                realtime: true,
+                start: 0,
+                end: 30,
+                xAxisIndex: [0]
+            }, {
+                type: 'inside',
+                realtime: true,
+                start: 0,
+                end: 30,
+                xAxisIndex: [0]
+            }],
+            xAxis: [{
+                type: 'category',
+                boundaryGap: false,
+                axisLine: { onZero: true },
+                data: timeData,
+                axisLabel: {
+                    formatter: '{value}'
+                }
+            }],
+            yAxis: [{
+                type: 'value',
+                max: 1.5,
+                axisLabel: {
+                    show: true
+                },
+                splitLine: {
+                    show: true
+                }
+            }],
+            series: [{
+                name: 'UHV',
+                type: 'line',
+                symbolSize: 8,
+                data: uhvData
+            }, {
+                name: 'TEV',
+                type: 'line',
+                symbolSize: 8,
+                data: tevData
+            }, {
+                name: 'AE',
+                type: 'line',
+                symbolSize: 8,
+                data: aeData
+            }]
+        };
+
+        myChart.setOption(option);
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+    </script>
 </body>
 </html>
